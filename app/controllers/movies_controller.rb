@@ -11,25 +11,28 @@ class MoviesController < ApplicationController
   end
 
   def index
-    
-    
-    @all_ratings = Movie.ratings
-    @selected_ratings = @all_ratings
 
-    # sort based on params[:sort]
-    @sort_column = params[:sort] || 'id'
-    @selected_ratings =  params[:ratings].keys if params[:ratings]
-  
-    @title_hilite = "hilite" if params[:sort] == 'title'
-    @date_hilite = "hilite" if params[:sort] == 'release_date'
+    @all_ratings = Movie.ratings
+
+    #Initial setting up of sessions
+    session[:ratings] ||= @all_ratings
+    session[:sort] ||= 'id'
+
+    @title_hilite = session[:title_hilite] = "hilite" if params[:sort] == 'title'
+    @date_hilite = session[:date_hilite] = "hilite" if params[:sort] == 'release_date'
+
+    #Remembering the user's preferences
     session[:ratings] = params[:ratings].keys if params[:ratings]
     session[:sort] = params[:sort] if params[:sort]
-    redirect_to movies_path(ratings: Hash[session[:ratings].map {|r| [r,1]}], sort: session[:sort]) if session[:ratings] && ( !params[:ratings] || !params[:sort])
-    @ratings = session[:ratings] || @all_ratings
-    @sort = session[:sort] || 'id'
+
+    #to preserve restfulness
+    redirect_to movies_path(ratings: Hash[session[:ratings].map {|r| [r,1]}], sort: session[:sort]) if  params[:ratings].nil? || params[:sort].nil?
+
+    @ratings = session[:ratings]
+    @sort = session[:sort]
+
     @movies = Movie.where(rating: @ratings).order(@sort)
-    
-    
+
   end
 
   def new
@@ -52,7 +55,7 @@ class MoviesController < ApplicationController
     flash[:notice] = "#{@movie.title} was successfully updated."
     redirect_to movie_path(@movie)
   end
-  
+
   def destroy
     @movie = Movie.find(params[:id])
     @movie.destroy
